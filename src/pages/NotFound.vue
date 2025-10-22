@@ -12,7 +12,7 @@ onMounted(() => {
   
   const animateDigit = () => {
     if (currentIndex < digits.length) {
-      const digit = parseInt(digits[currentIndex])
+      const digit = parseInt(digits[currentIndex] || '0')
       let count = 0
       
       const updateCount = () => {
