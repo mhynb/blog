@@ -1,35 +1,67 @@
 @import './base.css';
 
+/* 全局样式重置和基础设置 */
 #app {
-  max-width: 1280px;
+  width: 100%;
+  min-height: 100vh;
   margin: 0 auto;
-  padding: 2rem;
   font-weight: normal;
 }
 
-a,
-.green {
+/* 链接基础样式 */
+a {
   text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+  color: var(--color-text);
+  transition: all 0.3s ease;
+  position: relative;
 }
 
+/* 主题色链接 */
+.green {
+  color: hsla(160, 100%, 37%, 1);
+}
+
+/* 悬停效果 */
 @media (hover: hover) {
   a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
+    color: hsla(160, 100%, 37%, 1);
   }
 }
 
+/* 通用动画类 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.4s ease;
+}
+
+.slide-enter-from {
+  transform: translateX(-20px);
+  opacity: 0;
+}
+
+.slide-leave-to {
+  transform: translateX(20px);
+  opacity: 0;
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 响应式设计 */
 @media (min-width: 1024px) {
   body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
+    font-size: 16px;
   }
 }
