@@ -1,4 +1,29 @@
 import { marked } from 'marked'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github-dark.css'
+
+// 配置 marked 的渲染器
+const renderer = new marked.Renderer()
+
+renderer.code = function({ text, lang }: { text: string; lang?: string }) {
+  const language = lang || ''
+  if (language && hljs.getLanguage(language)) {
+    try {
+      const highlighted = hljs.highlight(text, { language }).value
+      return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`
+    } catch (err) {
+      console.error('Highlight error:', err)
+    }
+  }
+  const highlighted = hljs.highlightAuto(text).value
+  return `<pre><code class="hljs">${highlighted}</code></pre>`
+}
+
+marked.setOptions({
+  renderer,
+  breaks: true,
+  gfm: true
+})
 
 export function renderMarkdown(md: string): string {
   try {
@@ -56,9 +81,14 @@ export function extractExcerpt(md: string, maxLength = 150): string {
  * 注：这里是一个简单实现，实际项目中可以集成语法高亮库
  */
 export function highlightCode(code: string, lang: string): string {
-  // 简单的代码高亮实现
-  // 实际项目中可以使用如 highlight.js 或 prism.js 等专业库
-  return code
+  if (lang && hljs.getLanguage(lang)) {
+    try {
+      return hljs.highlight(code, { language: lang }).value
+    } catch (err) {
+      console.error('Highlight error:', err)
+    }
+  }
+  return hljs.highlightAuto(code).value
 }
 
 

@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { renderMarkdown } from '@/utils/markdown'
+import { useReadingProgress } from '@/composables/useReadingProgress'
+import { useToc } from '@/composables/useToc'
+import { useMeta } from '@/composables/useMeta'
 import posts from '@/posts/index'
 
 const route = useRoute()
@@ -11,6 +14,30 @@ const isLoading = ref(true)
 const slug = String(route.params.slug)
 const post = ref(posts.find(p => p.slug === slug))
 const animationKey = ref(0)
+const { progress } = useReadingProgress()
+const contentRef = ref<HTMLElement | null>(null)
+const { tocItems, activeId, scrollToHeading } = useToc(contentRef)
+const showToc = ref(false)
+
+// SEO 优化
+const metaInfo = computed(() => {
+  if (!post.value) return {}
+  
+  return {
+    title: `${post.value.title} - 我的个人博客`,
+    description: post.value.excerpt || '一篇有趣的技术文章',
+    keywords: post.value.tags?.join(', ') || '博客,技术',
+    author: 'BL_Coder',
+    ogTitle: post.value.title,
+    ogDescription: post.value.excerpt || '一篇有趣的技术文章',
+    ogUrl: window.location.href,
+    twitterCard: 'summary_large_image'
+  }
+})
+
+if (post.value) {
+  useMeta(metaInfo.value)
+}
 
 // 页面加载动画
 onMounted(() => {
@@ -76,6 +103,11 @@ const triggerReRender = () => {
 
 <template>
   <section class="post-section" :class="{ 'visible': isVisible }">
+    <!-- 阅读进度条 -->
+    <div class="reading-progress-container">
+      <div class="reading-progress-bar" :style="{ width: progress + '%' }"></div>
+    </div>
+    
     <!-- 加载指示器 -->
     <div v-if="isLoading" class="loading-indicator">
       <div class="loading-spinner"></div>
@@ -121,9 +153,38 @@ const triggerReRender = () => {
       </header>
       
       <!-- 文章内容 -->
-      <div class="post-content">
+      <div class="post-content" ref="contentRef">
         <div class="markdown-content" v-html="renderMarkdown(post.content)"></div>
       </div>
+      
+      <!-- 文章目录 -->
+      <aside v-if="tocItems.length > 0" class="toc-container" :class="{ 'show': showToc }">
+        <div class="toc-header">
+          <h3>目录</h3>
+          <button @click="showToc = !showToc" class="toc-toggle" :aria-label="showToc ? '隐藏目录' : '显示目录'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline :points="showToc ? '6 9 12 15 18 9' : '9 18 15 12 9 6'"></polyline>
+            </svg>
+          </button>
+        </div>
+        <nav class="toc-nav">
+          <ul class="toc-list">
+            <li 
+              v-for="item in tocItems" 
+              :key="item.id"
+              :class="['toc-item', `toc-level-${item.level}`, { 'active': activeId === item.id }]"
+            >
+              <a 
+                href="javascript:void(0)" 
+                @click="scrollToHeading(item.id)"
+                class="toc-link"
+              >
+                {{ item.text }}
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
       
       <!-- 文章底部 -->
       <footer class="post-footer">
@@ -169,6 +230,24 @@ const triggerReRender = () => {
 .post-section.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* 阅读进度条样式 */
+.reading-progress-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--color-border);
+  z-index: 1000;
+}
+
+.reading-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  transition: width 0.1s ease-out;
+  box-shadow: 0 0 10px rgba(0, 200, 135, 0.5);
 }
 
 /* 加载指示器样式 */
@@ -392,6 +471,123 @@ const triggerReRender = () => {
   padding: 2.5rem 2rem;
   line-height: 1.8;
   transition: all 0.3s ease;
+  position: relative;
+}
+
+/* 文章目录样式 */
+.toc-container {
+  position: fixed;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 280px;
+  background-color: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  transition: all 0.3s ease;
+}
+
+.toc-container:not(.show) {
+  opacity: 0.7;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+.toc-container:hover {
+  opacity: 1;
+}
+
+.toc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.toc-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  margin: 0;
+}
+
+.toc-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.toc-toggle:hover {
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.toc-nav {
+  font-size: 0.875rem;
+}
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-item {
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.toc-level-1 {
+  padding-left: 0;
+}
+
+.toc-level-2 {
+  padding-left: 1rem;
+}
+
+.toc-level-3 {
+  padding-left: 2rem;
+}
+
+.toc-level-4 {
+  padding-left: 3rem;
+}
+
+.toc-level-5,
+.toc-level-6 {
+  padding-left: 4rem;
+}
+
+.toc-link {
+  display: block;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+  border-left: 2px solid transparent;
+  transition: all 0.2s ease;
+  line-height: 1.5;
+}
+
+.toc-link:hover {
+  color: var(--color-primary);
+  border-left-color: var(--color-primary);
+  background-color: var(--color-background-mute);
+}
+
+.toc-item.active .toc-link {
+  color: var(--color-primary);
+  border-left-color: var(--color-primary);
+  font-weight: 600;
 }
 
 .markdown-content {
@@ -669,6 +865,25 @@ const triggerReRender = () => {
   .markdown-content :deep(h1) { font-size: 1.75rem; }
   .markdown-content :deep(h2) { font-size: 1.5rem; }
   .markdown-content :deep(h3) { font-size: 1.25rem; }
+  
+  /* 移动端隐藏 TOC */
+  .toc-container {
+    display: none;
+  }
+}
+
+/* 大屏幕下显示 TOC */
+@media (min-width: 1400px) {
+  .toc-container {
+    display: block;
+  }
+}
+
+/* 中等屏幕隐藏 TOC */
+@media (max-width: 1400px) {
+  .toc-container {
+    display: none;
+  }
 }
 
 /* 暗色模式优化 */
