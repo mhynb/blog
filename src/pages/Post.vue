@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { renderMarkdown } from '@/utils/markdown'
 import { useReadingProgress } from '@/composables/useReadingProgress'
@@ -19,17 +19,17 @@ const contentRef = ref<HTMLElement | null>(null)
 const { tocItems, activeId, scrollToHeading } = useToc(contentRef)
 const showToc = ref(false)
 
-// SEO 优化
+// SEO Optimization
 const metaInfo = computed(() => {
   if (!post.value) return {}
   
   return {
-    title: `${post.value.title} - 我的个人博客`,
-    description: post.value.excerpt || '一篇有趣的技术文章',
-    keywords: post.value.tags?.join(', ') || '博客,技术',
+    title: `${post.value.title} - My Personal Blog`,
+    description: post.value.excerpt || 'An interesting technical article',
+    keywords: post.value.tags?.join(', ') || 'blog,tech',
     author: 'BL_Coder',
     ogTitle: post.value.title,
-    ogDescription: post.value.excerpt || '一篇有趣的技术文章',
+    ogDescription: post.value.excerpt || 'An interesting technical article',
     ogUrl: window.location.href,
     twitterCard: 'summary_large_image'
   }
@@ -39,863 +39,301 @@ if (post.value) {
   useMeta(metaInfo.value)
 }
 
-// 页面加载动画
+// Page Load Animation
 onMounted(() => {
-  // 模拟文章加载
   setTimeout(() => {
     isLoading.value = false
-    setTimeout(() => {
+    nextTick(() => {
       isVisible.value = true
-      // 更新页面标题
       if (post.value) {
-        document.title = `${post.value.title} - 我的个人博客`
+        document.title = `${post.value.title} - My Personal Blog`
       }
-    }, 100)
+    })
   }, 300)
 })
 
-// 监听路由变化
 onUnmounted(() => {
   isVisible.value = false
 })
 
-// 返回文章列表
 const goBack = () => {
   router.push('/posts')
 }
 
-// 分享功能
 const sharePost = () => {
   if (navigator.share) {
     navigator.share({
       title: post.value?.title,
-      text: post.value?.excerpt || `来看看这篇文章: ${post.value?.title}`,
+      text: post.value?.excerpt || `Check out this article: ${post.value?.title}`,
       url: window.location.href
     })
   } else {
-    // 复制链接到剪贴板
     navigator.clipboard.writeText(window.location.href)
       .then(() => {
-        alert('链接已复制到剪贴板！')
+        alert('Link copied to clipboard!')
       })
       .catch(err => {
-        console.error('复制失败:', err)
-        alert('复制失败，请手动复制链接')
+        console.error('Copy failed:', err)
+        alert('Copy failed, please copy manually')
       })
   }
 }
 
-// 格式化日期
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
-  return date.toLocaleDateString('zh-CN', {
+  return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   })
 }
 
-// 为重新渲染添加动画效果
 const triggerReRender = () => {
   animationKey.value++
 }
 </script>
 
 <template>
-  <section class="post-section" :class="{ 'visible': isVisible }">
-    <!-- 阅读进度条 -->
-    <div class="reading-progress-container">
-      <div class="reading-progress-bar" :style="{ width: progress + '%' }"></div>
+  <div class="min-h-screen bg-neutral-50 dark:bg-neutral-900 transition-colors duration-300">
+    <!-- Reading Progress Bar -->
+    <div class="fixed top-0 left-0 right-0 h-1 bg-neutral-200 dark:bg-neutral-800 z-50">
+      <div 
+        class="h-full bg-gradient-to-r from-emerald-400 to-teal-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-100 ease-out"
+        :style="{ width: progress + '%' }"
+      ></div>
     </div>
-    
-    <!-- 加载指示器 -->
-    <div v-if="isLoading" class="loading-indicator">
-      <div class="loading-spinner"></div>
-      <p>文章加载中...</p>
+
+    <!-- Loading State -->
+    <div v-if="isLoading" class="min-h-[60vh] flex flex-col items-center justify-center">
+      <div class="w-12 h-12 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+      <p class="text-neutral-500 dark:text-neutral-400 animate-pulse">Loading article...</p>
     </div>
-    
-    <!-- 未找到文章 -->
-    <div v-else-if="!post" class="not-found">
-      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="not-found-icon">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-      </svg>
-      <h2>文章未找到</h2>
-      <p>抱歉，您请求的文章不存在或已被删除。</p>
-      <RouterLink to="/posts" class="btn btn-primary">返回文章列表</RouterLink>
+
+    <!-- Not Found State -->
+    <div v-else-if="!post" class="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+      <div class="bg-neutral-100 dark:bg-neutral-800 p-6 rounded-full mb-6">
+        <svg class="w-12 h-12 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <h2 class="text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">Article Not Found</h2>
+      <p class="text-neutral-500 dark:text-neutral-400 mb-8 max-w-md">Sorry, the article you requested does not exist or has been removed.</p>
+      <RouterLink 
+        to="/posts" 
+        class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors font-medium shadow-lg shadow-emerald-500/20"
+      >
+        Back to Articles
+      </RouterLink>
     </div>
-    
-    <!-- 文章详情 -->
-    <article v-else class="post-container" :key="animationKey">
-      <!-- 文章头部 -->
-      <header class="post-header">
-        <div class="post-meta">
-          <span class="post-date">{{ formatDate(post.date) }}</span>
-          <button @click="goBack" class="back-button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+    <!-- Post Content -->
+    <article 
+      v-else 
+      class="max-w-4xl mx-auto px-4 sm:px-6 py-12 lg:py-16 transition-opacity duration-700"
+      :class="isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+      :key="animationKey"
+    >
+      <!-- Header -->
+      <header class="mb-12 text-center md:text-left">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <button 
+            @click="goBack" 
+            class="inline-flex items-center text-neutral-500 hover:text-emerald-500 dark:text-neutral-400 dark:hover:text-emerald-400 transition-colors group"
+          >
+            <svg class="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
-            返回
+            Back
           </button>
+          
+          <time class="text-neutral-400 font-mono text-sm tracking-wider uppercase">
+            {{ formatDate(post.date) }}
+          </time>
         </div>
-        <h1 class="post-title">{{ post.title }}</h1>
-        
-        <!-- 文章标签 -->
-        <div v-if="post.tags && post.tags.length > 0" class="post-tags">
-          <span v-for="tag in post.tags" :key="tag" class="post-tag">
-            {{ tag }}
+
+        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-neutral-900 dark:text-white mb-6 leading-tight">
+          <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300">
+            {{ post.title }}
+          </span>
+        </h1>
+
+        <div class="flex flex-wrap gap-3 mb-8 justify-center md:justify-start">
+          <span 
+            v-for="tag in post.tags" 
+            :key="tag"
+            class="px-3 py-1 text-sm font-medium rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800/50"
+          >
+            #{{ tag }}
           </span>
         </div>
-        
-        <!-- 文章摘要 -->
-        <p v-if="post.excerpt" class="post-excerpt">{{ post.excerpt }}</p>
+
+        <p v-if="post.excerpt" class="text-xl text-neutral-600 dark:text-neutral-300 leading-relaxed italic border-l-4 border-emerald-500 pl-4 md:pl-6 py-1">
+          {{ post.excerpt }}
+        </p>
       </header>
-      
-      <!-- 文章内容 -->
-      <div class="post-content" ref="contentRef">
-        <div class="markdown-content" v-html="renderMarkdown(post.content)"></div>
+
+      <div class="flex gap-12 relative">
+        <!-- Main Content -->
+        <div class="flex-1 min-w-0">
+          <div 
+            ref="contentRef"
+            class="prose prose-lg dark:prose-invert max-w-none 
+            prose-headings:font-bold prose-headings:tracking-tight
+            prose-a:text-emerald-500 prose-a:no-underline hover:prose-a:underline
+            prose-pre:bg-neutral-800 prose-pre:border prose-pre:border-neutral-700
+            prose-img:rounded-xl prose-img:shadow-lg
+            prose-blockquote:border-l-emerald-500 prose-blockquote:bg-neutral-50 dark:prose-blockquote:bg-neutral-800/50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg"
+            v-html="renderMarkdown(post.content)"
+          ></div>
+        </div>
+
+        <!-- TOC Sidebar (Desktop) -->
+        <aside class="hidden xl:block w-64 shrink-0">
+          <div class="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar p-4 bg-white dark:bg-neutral-800/50 rounded-xl border border-neutral-100 dark:border-neutral-800 shadow-sm backdrop-blur-sm">
+            <h3 class="text-sm font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              Table of Contents
+            </h3>
+            <nav>
+              <ul class="space-y-1">
+                <li 
+                  v-for="item in tocItems" 
+                  :key="item.id"
+                  :class="`pl-${(item.level - 1) * 3}`"
+                >
+                  <a 
+                    href="javascript:void(0)" 
+                    @click="scrollToHeading(item.id)"
+                    class="block py-1.5 text-sm transition-colors border-l-2 pl-3 hover:text-emerald-500 hover:border-emerald-500"
+                    :class="activeId === item.id ? 'text-emerald-500 border-emerald-500 font-medium' : 'text-neutral-500 dark:text-neutral-400 border-transparent'"
+                  >
+                    {{ item.text }}
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </aside>
       </div>
-      
-      <!-- 文章目录 -->
-      <aside v-if="tocItems.length > 0" class="toc-container" :class="{ 'show': showToc }">
-        <div class="toc-header">
-          <h3>目录</h3>
-          <button @click="showToc = !showToc" class="toc-toggle" :aria-label="showToc ? '隐藏目录' : '显示目录'">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline :points="showToc ? '6 9 12 15 18 9' : '9 18 15 12 9 6'"></polyline>
+
+      <!-- Footer -->
+      <footer class="mt-16 pt-8 border-t border-neutral-200 dark:border-neutral-800">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div class="flex gap-4">
+            <button 
+              @click="sharePost"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              Share Article
+            </button>
+            <button 
+              @click="triggerReRender"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              Refresh
+            </button>
+          </div>
+          
+          <div class="text-sm text-neutral-400">
+            Published on {{ formatDate(post.date) }}
+          </div>
+        </div>
+      </footer>
+    </article>
+    
+    <!-- Mobile TOC Toggle (Floating Action Button) -->
+    <div class="xl:hidden fixed bottom-6 right-6 z-40">
+      <button 
+        @click="showToc = !showToc"
+        class="p-4 bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 transition-transform active:scale-95"
+      >
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Mobile TOC Drawer -->
+    <div 
+      class="fixed inset-0 z-50 xl:hidden transition-opacity duration-300" 
+      :class="showToc ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'"
+    >
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showToc = false"></div>
+      <div 
+        class="absolute right-0 top-0 bottom-0 w-80 bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 p-6 overflow-y-auto"
+        :class="showToc ? 'translate-x-0' : 'translate-x-full'"
+      >
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-bold text-neutral-900 dark:text-white">Table of Contents</h3>
+          <button @click="showToc = false" class="text-neutral-500 hover:text-neutral-900 dark:hover:text-white">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
         </div>
-        <nav class="toc-nav">
-          <ul class="toc-list">
+        <nav>
+          <ul class="space-y-2">
             <li 
               v-for="item in tocItems" 
               :key="item.id"
-              :class="['toc-item', `toc-level-${item.level}`, { 'active': activeId === item.id }]"
+              :class="`pl-${(item.level - 1) * 3}`"
             >
               <a 
                 href="javascript:void(0)" 
-                @click="scrollToHeading(item.id)"
-                class="toc-link"
+                @click="scrollToHeading(item.id); showToc = false"
+                class="block py-2 text-sm border-l-2 pl-3 transition-colors"
+                :class="activeId === item.id ? 'text-emerald-500 border-emerald-500 font-medium' : 'text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700'"
               >
                 {{ item.text }}
               </a>
             </li>
           </ul>
         </nav>
-      </aside>
-      
-      <!-- 文章底部 -->
-      <footer class="post-footer">
-        <div class="footer-actions">
-          <button @click="sharePost" class="share-button">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="18" cy="5" r="3"></circle>
-              <circle cx="6" cy="12" r="3"></circle>
-              <circle cx="18" cy="19" r="3"></circle>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-            </svg>
-            分享文章
-          </button>
-          <button @click="triggerReRender" class="refresh-button">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <polyline points="1 20 1 14 7 14"></polyline>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-            </svg>
-            刷新
-          </button>
-        </div>
-        <div class="footer-info">
-          <p>发布于 {{ formatDate(post.date) }}</p>
-          <RouterLink to="/posts" class="more-posts">查看更多文章</RouterLink>
-        </div>
-      </footer>
-    </article>
-  </section>
+      </div>
+    </div>
+  </div>
 </template>
 
-<style scoped>
-.post-section {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 4rem 1.5rem;
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-
-.post-section.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* 阅读进度条样式 */
-.reading-progress-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background-color: var(--color-border);
-  z-index: 1000;
-}
-
-.reading-progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  transition: width 0.1s ease-out;
-  box-shadow: 0 0 10px rgba(0, 200, 135, 0.5);
-}
-
-/* 加载指示器样式 */
-.loading-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6rem 1rem;
-  text-align: center;
-}
-
-.loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--color-border);
-  border-top: 4px solid var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1.5rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-indicator p {
-  color: var(--color-text-secondary);
-  font-size: 1.125rem;
-}
-
-/* 未找到文章样式 */
-.not-found {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6rem 1rem;
-  text-align: center;
-  animation: fadeIn 0.5s ease-out 0.3s forwards;
-  opacity: 0;
-}
-
-.not-found-icon {
-  color: var(--color-text-tertiary);
-  margin-bottom: 1.5rem;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.5;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
-  }
-}
-
-.not-found h2 {
-  font-size: 1.875rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--color-text-primary);
-}
-
-.not-found p {
-  color: var(--color-text-secondary);
-  margin-bottom: 2rem;
-  max-width: 400px;
-}
-
-.back-link {
-  display: inline-block;
-  padding: 0.75rem 1.5rem;
-  background-color: var(--color-primary);
-  color: white;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  border: none;
-  cursor: pointer;
-}
-
-.back-link:hover {
-  background-color: var(--color-primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
-}
-
-/* 文章容器样式 */
-.post-container {
-  background-color: var(--color-background-secondary);
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-  animation: fadeInUp 0.6s ease-out;
-  transition: all 0.3s ease;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 文章头部样式 */
-.post-header {
-  padding: 2.5rem 2rem;
-  border-bottom: 1px solid var(--color-border);
-  position: relative;
-  background: linear-gradient(135deg, var(--color-background-secondary) 0%, var(--color-background-tertiary) 100%);
-}
-
-.post-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.post-date {
-  color: var(--color-primary);
-  font-weight: 500;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.post-date::before {
-  content: '';
-  display: inline-block;
+<style>
+/* Custom Scrollbar for TOC */
+.custom-scrollbar::-webkit-scrollbar {
   width: 4px;
-  height: 4px;
-  background-color: var(--color-primary);
-  border-radius: 50%;
 }
-
-.back-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.back-button:hover {
-  background-color: var(--color-background-tertiary);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  transform: translateX(-2px);
-}
-
-.post-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: 1.5rem;
-  line-height: 1.3;
-  background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-text-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* 文章标签样式 */
-.post-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.post-tag {
-  display: inline-block;
-  padding: 0.375rem 0.75rem;
-  background-color: rgba(var(--color-primary-rgb), 0.1);
-  border-radius: 1.5rem;
-  font-size: 0.875rem;
-  color: var(--color-primary);
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.post-tag:hover {
-  background-color: var(--color-primary);
-  color: white;
-  transform: translateY(-1px);
-}
-
-/* 文章摘要样式 */
-.post-excerpt {
-  font-size: 1.125rem;
-  line-height: 1.6;
-  color: var(--color-text-secondary);
-  margin-bottom: 0;
-  font-style: italic;
-  padding-left: 1rem;
-  border-left: 3px solid var(--color-primary);
-}
-
-/* 文章内容样式 */
-.post-content {
-  padding: 2.5rem 2rem;
-  line-height: 1.8;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-/* 文章目录样式 */
-.toc-container {
-  position: fixed;
-  right: 2rem;
-  top: 50%;
-  transform: translateY(-50%);
-  max-width: 280px;
-  background-color: var(--color-background-soft);
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  max-height: 70vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-  transition: all 0.3s ease;
-}
-
-.toc-container:not(.show) {
-  opacity: 0.7;
-  max-height: 60px;
-  overflow: hidden;
-}
-
-.toc-container:hover {
-  opacity: 1;
-}
-
-.toc-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.toc-header h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-heading);
-  margin: 0;
-}
-
-.toc-toggle {
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0.25rem;
-  color: var(--color-text-secondary);
-  transition: all 0.2s ease;
 }
-
-.toc-toggle:hover {
-  color: var(--color-primary);
-  transform: scale(1.1);
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
 }
-
-.toc-nav {
-  font-size: 0.875rem;
-}
-
-.toc-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.toc-item {
-  margin-bottom: 0.5rem;
-  transition: all 0.2s ease;
-}
-
-.toc-level-1 {
-  padding-left: 0;
-}
-
-.toc-level-2 {
-  padding-left: 1rem;
-}
-
-.toc-level-3 {
-  padding-left: 2rem;
-}
-
-.toc-level-4 {
-  padding-left: 3rem;
-}
-
-.toc-level-5,
-.toc-level-6 {
-  padding-left: 4rem;
-}
-
-.toc-link {
-  display: block;
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  padding: 0.25rem 0.5rem;
-  border-left: 2px solid transparent;
-  transition: all 0.2s ease;
-  line-height: 1.5;
-}
-
-.toc-link:hover {
-  color: var(--color-primary);
-  border-left-color: var(--color-primary);
-  background-color: var(--color-background-mute);
-}
-
-.toc-item.active .toc-link {
-  color: var(--color-primary);
-  border-left-color: var(--color-primary);
-  font-weight: 600;
-}
-
-.markdown-content {
-  animation: fadeIn 0.5s ease-out 0.3s forwards;
-  opacity: 0;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.markdown-content :deep(h1),
-.markdown-content :deep(h2),
-.markdown-content :deep(h3),
-.markdown-content :deep(h4),
-.markdown-content :deep(h5),
-.markdown-content :deep(h6) {
-  margin-top: 2.5rem;
-  margin-bottom: 1.25rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  line-height: 1.4;
-}
-
-.markdown-content :deep(h1) { 
-  font-size: 2rem;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 0.5rem;
-  margin-top: 0;
-}
-.markdown-content :deep(h2) { 
-  font-size: 1.75rem;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 0.375rem;
-}
-.markdown-content :deep(h3) { font-size: 1.5rem; }
-.markdown-content :deep(h4) { font-size: 1.25rem; }
-.markdown-content :deep(h5) { font-size: 1.125rem; }
-.markdown-content :deep(h6) { font-size: 1rem; }
-
-.markdown-content :deep(p) {
-  margin-bottom: 1.5rem;
-  color: var(--color-text-primary);
-}
-
-.markdown-content :deep(a) {
-  color: var(--color-primary);
-  text-decoration: none;
-  position: relative;
-  transition: color 0.2s ease;
-  font-weight: 500;
-}
-
-.markdown-content :deep(a::after) {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background-color: var(--color-primary);
-  transition: width 0.2s ease;
-}
-
-.markdown-content :deep(a:hover) {
-  color: var(--color-primary-dark);
-}
-
-.markdown-content :deep(a:hover::after) {
-  width: 100%;
-}
-
-.markdown-content :deep(ul),
-.markdown-content :deep(ol) {
-  margin-bottom: 1.5rem;
-  padding-left: 1.5rem;
-  color: var(--color-text-primary);
-}
-
-.markdown-content :deep(li) {
-  margin-bottom: 0.75rem;
-}
-
-.markdown-content :deep(li:last-child) {
-  margin-bottom: 0;
-}
-
-.markdown-content :deep(blockquote) {
-  border-left: 4px solid var(--color-primary);
-  padding: 1rem 1.5rem;
-  margin: 1.5rem 0;
-  background-color: var(--color-background-tertiary);
-  border-radius: 0 0.5rem 0.5rem 0;
-  font-style: italic;
-  color: var(--color-text-secondary);
-  transition: all 0.2s ease;
-}
-
-.markdown-content :deep(blockquote:hover) {
-  transform: translateX(4px);
-}
-
-.markdown-content :deep(code) {
-  background-color: var(--color-background-tertiary);
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 0.875em;
-  color: var(--color-text-secondary);
-}
-
-.markdown-content :deep(pre) {
-  background-color: var(--color-background-tertiary);
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin: 1.5rem 0;
-  border: 1px solid var(--color-border);
-  transition: all 0.2s ease;
-}
-
-.markdown-content :deep(pre:hover) {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.markdown-content :deep(pre code) {
-  background-color: transparent;
-  padding: 0;
-  color: var(--color-text-primary);
-}
-
-.markdown-content :deep(img) {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  margin: 1.5rem 0;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  cursor: pointer;
-}
-
-.markdown-content :deep(img:hover) {
-  transform: scale(1.02);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.markdown-content :deep(table) {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1.5rem 0;
-  overflow: hidden;
-  border-radius: 0.5rem;
-}
-
-.markdown-content :deep(th),
-.markdown-content :deep(td) {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.markdown-content :deep(th) {
-  background-color: var(--color-background-tertiary);
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.markdown-content :deep(tr:hover) {
-  background-color: var(--color-background-tertiary);
-}
-
-/* 文章底部样式 */
-.post-footer {
-  padding: 2rem;
-  border-top: 1px solid var(--color-border);
-  background-color: var(--color-background-tertiary);
-  transition: all 0.3s ease;
-}
-
-.footer-actions {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.share-button,
-.refresh-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid var(--color-border);
-  background-color: transparent;
-  color: var(--color-text-secondary);
-}
-
-.share-button:hover {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
-}
-
-.refresh-button:hover {
-  background-color: var(--color-background-secondary);
-  border-color: var(--color-text-secondary);
-  color: var(--color-text-primary);
-  transform: translateY(-2px);
-}
-
-.footer-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.footer-info p {
-  color: var(--color-text-tertiary);
-  font-size: 0.875rem;
-  margin: 0;
-}
-
-.more-posts {
-  color: var(--color-primary);
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  font-size: 0.875rem;
-  display: inline-block;
-}
-
-.more-posts:hover {
-  color: var(--color-primary-dark);
-  transform: translateX(2px);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .post-section {
-    padding: 2rem 1rem;
-  }
-  
-  .post-header,
-  .post-content,
-  .post-footer {
-    padding: 1.5rem 1rem;
-  }
-  
-  .post-title {
-    font-size: 2rem;
-  }
-  
-  .post-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  
-  .footer-actions {
-    flex-direction: column;
-  }
-  
-  .share-button,
-  .refresh-button {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .markdown-content :deep(h1) { font-size: 1.75rem; }
-  .markdown-content :deep(h2) { font-size: 1.5rem; }
-  .markdown-content :deep(h3) { font-size: 1.25rem; }
-  
-  /* 移动端隐藏 TOC */
-  .toc-container {
-    display: none;
-  }
-}
-
-/* 大屏幕下显示 TOC */
-@media (min-width: 1400px) {
-  .toc-container {
-    display: block;
-  }
-}
-
-/* 中等屏幕隐藏 TOC */
-@media (max-width: 1400px) {
-  .toc-container {
-    display: none;
-  }
-}
-
-/* 暗色模式优化 */
-@media (prefers-color-scheme: dark) {
-  .post-container {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  }
-  
-  .markdown-content :deep(img:hover) {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.8);
 }
 </style>
-
-
